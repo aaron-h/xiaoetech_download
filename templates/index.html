@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3U8视频下载器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .config-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 14px;
+            color: #555;
+            text-align: center;
+        }
+        
+        .status {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .logs {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .log-line {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-info { color: #3498db; }
+        .log-success { color: #2ecc71; }
+        .log-warning { color: #f39c12; }
+        .log-error { color: #e74c3c; }
+        
+        .files-list {
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: bold;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: #777;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>M3U8视频下载器</h1>
+        
+        <div class="card">
+            <h2>下载配置</h2>
+            <form id="downloadForm">
+                <div class="form-group">
+                    <label for="m3u8Urls">M3U8链接 (每行一个):</label>
+                    <textarea id="m3u8Urls" placeholder="请输入M3U8链接，每行一个"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <div class="config-row">
+                        <div>
+                            <label for="threadNum">线程数:</label>
+                            <input type="number" id="threadNum" value="8" min="1" max="32">
+                        </div>
+                        
+                        <div>
+                            <label for="timeout">超时时间 (秒):</label>
+                            <input type="number" id="timeout" value="60" min="10" max="300">
+                        </div>
+                        
+                        <div>
+                            <label for="retryCount">重试次数:</label>
+                            <input type="number" id="retryCount" value="3" min="1" max="10">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-primary" onclick="startDownload()">开始下载</button>
+                    <button type="button" class="btn btn-danger" onclick="resetDownload()">重置</button>
+                    <button type="button" class="btn btn-success" onclick="refreshFiles()">刷新文件列表</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>下载状态</h2>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+            <div class="status" id="statusText">准备就绪</div>
+        </div>
+        
+        <div class="card">
+            <h2>日志输出</h2>
+            <div class="logs" id="logsContainer"></div>
+        </div>
+        
+        <div class="card">
+            <h2>已下载文件</h2>
+            <div class="files-list" id="filesContainer">
+                <div class="empty-state">暂无已下载文件</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 轮询状态
+        let pollingInterval;
+        
+        function startDownload() {
+            const urls = document.getElementById('m3u8Urls').value.trim().split('\n').filter(url => url.trim());
+            if (urls.length === 0) {
+                alert('请输入M3U8链接');
+                return;
+            }
+            
+            // 获取用户配置
+            const threadNum = parseInt(document.getElementById('threadNum').value);
+            const timeout = parseInt(document.getElementById('timeout').value);
+            const retryCount = parseInt(document.getElementById('retryCount').value);
+            
+            // 停止之前的轮询
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            // 发送下载请求，包含用户配置
+            fetch('/api/start_download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    urls: urls,
+                    thread_num: threadNum,
+                    timeout: timeout,
+                    retry_count: retryCount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 开始轮询状态
+                    pollingInterval = setInterval(updateStatus, 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        function resetDownload() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            
+            fetch('/api/reset')
+            .then(response => response.json())
+            .then(data => {
+                updateStatus();
+                document.getElementById('m3u8Urls').value = '';
+            });
+        }
+        
+        function updateStatus() {
+            fetch('/api/get_status')
+            .then(response => response.json())
+            .then(data => {
+                // 更新进度条
+                const progress = Math.round(data.progress);
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = progress + '%';
+                document.getElementById('statusText').textContent = data.status;
+                
+                // 更新日志
+                const logsContainer = document.getElementById('logsContainer');
+                logsContainer.innerHTML = '';
+                data.logs.forEach(log => {
+                    const logLine = document.createElement('div');
+                    logLine.className = `log-line log-${log.level}`;
+                    logLine.textContent = `[${log.time}] ${log.message}`;
+                    logsContainer.appendChild(logLine);
+                });
+                // 滚动到底部
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+                
+                // 如果下载完成，停止轮询
+                if (data.status.includes('完成') && pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    // 刷新文件列表
+                    refreshFiles();
+                }
+            });
+        }
+        
+        function refreshFiles() {
+            fetch('/api/get_files')
+            .then(response => response.json())
+            .then(data => {
+                const filesContainer = document.getElementById('filesContainer');
+                
+                if (data.status === 'success' && data.files.length > 0) {
+                    filesContainer.innerHTML = '';
+                    data.files.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        
+                        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                        
+                        fileItem.innerHTML = `
+                            <div class="file-info">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-meta">大小: ${fileSize} MB | 修改时间: ${file.mtime}</div>
+                            </div>
+                        `;
+                        filesContainer.appendChild(fileItem);
+                    });
+                } else {
+                    filesContainer.innerHTML = '<div class="empty-state">暂无已下载文件</div>';
+                }
+            });
+        }
+        
+        // 初始加载
+        updateStatus();
+        refreshFiles();
+    </script>
+</body>
+</html>
